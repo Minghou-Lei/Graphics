@@ -168,7 +168,7 @@ namespace UnityEditor.VFX
             var blendMode = BlendMode.Opaque;
 
             var shaderGraph = GetOrRefreshShaderGraphObject();
-            if (shaderGraph != null && shaderGraph.generatesWithShaderGraph)
+            if (shaderGraph != null && shaderGraph.generatesWithShaderGraph && VFXLibrary.currentSRPBinder != null)
             {
                 // VFX Blend Mode state configures important systems like sorting and indirect buffer.
                 // In the case of SG Generation path, we need to know the blend mode state of the SRP
@@ -303,7 +303,7 @@ namespace UnityEditor.VFX
             {
                 var shaderGraph = GetOrRefreshShaderGraphObject();
 
-                if (shaderGraph == null || !shaderGraph.generatesWithShaderGraph)
+                if (shaderGraph == null || !shaderGraph.generatesWithShaderGraph || VFXLibrary.currentSRPBinder == null)
                     return string.Empty;
 
                 return VFXLibrary.currentSRPBinder.GetShaderName(shaderGraph);
@@ -391,13 +391,15 @@ namespace UnityEditor.VFX
         {
             base.CheckGraphBeforeImport();
             // If the graph is reimported it can be because one of its depedency such as the shadergraphs, has been changed.
+            if (!VFXGraph.explicitCompile)
+            {
+                ResyncSlots(true);
 
-            ResyncSlots(true);
-
-            // Ensure that the output context name is in sync with the shader graph shader enum name.
-            if (GetOrRefreshShaderGraphObject() != null &&
-                GetOrRefreshShaderGraphObject().generatesWithShaderGraph)
-                Invalidate(InvalidationCause.kStructureChanged);
+                // Ensure that the output context name is in sync with the shader graph shader enum name.
+                if (GetOrRefreshShaderGraphObject() != null &&
+                    GetOrRefreshShaderGraphObject().generatesWithShaderGraph)
+                    Invalidate(InvalidationCause.kUIChangedTransient);
+            }
         }
 
         protected override IEnumerable<VFXPropertyWithValue> inputProperties
@@ -484,6 +486,17 @@ namespace UnityEditor.VFX
                 { "GBuffer", new PassInfo()  { vertexPorts = new int[] {}, pixelPorts = new int[] { ShaderGraphVfxAsset.BaseColorSlotId, ShaderGraphVfxAsset.AlphaSlotId, ShaderGraphVfxAsset.MetallicSlotId, ShaderGraphVfxAsset.SmoothnessSlotId, ShaderGraphVfxAsset.EmissiveSlotId, ShaderGraphVfxAsset.NormalSlotId, ShaderGraphVfxAsset.AlphaThresholdSlotId } } },
                 { "Forward", new PassInfo()  { vertexPorts = new int[] {}, pixelPorts = new int[] { ShaderGraphVfxAsset.BaseColorSlotId, ShaderGraphVfxAsset.AlphaSlotId, ShaderGraphVfxAsset.MetallicSlotId, ShaderGraphVfxAsset.SmoothnessSlotId, ShaderGraphVfxAsset.EmissiveSlotId, ShaderGraphVfxAsset.NormalSlotId, ShaderGraphVfxAsset.AlphaThresholdSlotId } } },
                 { "DepthOnly", new PassInfo()  { vertexPorts = new int[] {}, pixelPorts = new int[] { ShaderGraphVfxAsset.AlphaSlotId, ShaderGraphVfxAsset.AlphaThresholdSlotId } } }
+            }
+        };
+
+        protected static readonly RPInfo urpLitInfo = new RPInfo
+        {
+            passInfos = new Dictionary<string, PassInfo>()
+            {
+                { "GBuffer", new PassInfo()  { vertexPorts = new int[] {}, pixelPorts = new int[] { ShaderGraphVfxAsset.BaseColorSlotId, ShaderGraphVfxAsset.AlphaSlotId, ShaderGraphVfxAsset.MetallicSlotId, ShaderGraphVfxAsset.SmoothnessSlotId, ShaderGraphVfxAsset.EmissiveSlotId, ShaderGraphVfxAsset.NormalSlotId, ShaderGraphVfxAsset.AlphaThresholdSlotId } } },
+                { "Forward", new PassInfo()  { vertexPorts = new int[] {}, pixelPorts = new int[] { ShaderGraphVfxAsset.BaseColorSlotId, ShaderGraphVfxAsset.AlphaSlotId, ShaderGraphVfxAsset.MetallicSlotId, ShaderGraphVfxAsset.SmoothnessSlotId, ShaderGraphVfxAsset.EmissiveSlotId, ShaderGraphVfxAsset.NormalSlotId, ShaderGraphVfxAsset.AlphaThresholdSlotId } } },
+                { "DepthOnly", new PassInfo()  { vertexPorts = new int[] {}, pixelPorts = new int[] { ShaderGraphVfxAsset.AlphaSlotId, ShaderGraphVfxAsset.AlphaThresholdSlotId } } },
+                { "DepthNormals",  new PassInfo()  { vertexPorts = new int[] {}, pixelPorts = new int[] { ShaderGraphVfxAsset.AlphaSlotId, ShaderGraphVfxAsset.AlphaThresholdSlotId, ShaderGraphVfxAsset.NormalSlotId } } }
             }
         };
 
@@ -764,6 +777,20 @@ namespace UnityEditor.VFX
                             if ((graphCode.requirements.requiresPosition & NeededCoordinateSpace.AbsoluteWorld) != 0)
                                 callSG.builder.AppendLine("INSG.AbsoluteWorldSpacePosition = posAbsoluteWS;");
 
+                            if (graphCode.requirements.requiresPositionPredisplacement != NeededCoordinateSpace.None)
+                            {
+                                if ((graphCode.requirements.requiresPositionPredisplacement & NeededCoordinateSpace.World) != 0)
+                                    callSG.builder.AppendLine("INSG.WorldSpacePositionPredisplacement = posRelativeWS;");
+                                if ((graphCode.requirements.requiresPositionPredisplacement & NeededCoordinateSpace.Object) != 0)
+                                    callSG.builder.AppendLine("INSG.ObjectSpacePositionPredisplacement = TransformWorldToObject(posRelativeWS);");
+                                if ((graphCode.requirements.requiresPositionPredisplacement & NeededCoordinateSpace.View) != 0)
+                                    callSG.builder.AppendLine("INSG.ViewSpacePositionPredisplacement = VFXTransformPositionWorldToView(posRelativeWS);");
+                                if ((graphCode.requirements.requiresPositionPredisplacement & NeededCoordinateSpace.Tangent) != 0)
+                                    callSG.builder.AppendLine("INSG.TangentSpacePositionPredisplacement = float3(0.0f, 0.0f, 0.0f);");
+                                if ((graphCode.requirements.requiresPositionPredisplacement & NeededCoordinateSpace.AbsoluteWorld) != 0)
+                                    callSG.builder.AppendLine("INSG.AbsoluteWorldSpacePositionPredisplacement = posAbsoluteWS;");
+                            }
+
                             if (graphCode.requirements.requiresScreenPosition)
                                 callSG.builder.AppendLine("INSG.ScreenPosition = ComputeScreenPos(VFXTransformPositionWorldToClip(i.VFX_VARYING_POSWS), _ProjectionParams.x);");
 
@@ -813,7 +840,7 @@ namespace UnityEditor.VFX
                         callSG.builder.Append($"\n{shaderGraph.outputStructName} OUTSG = {shaderGraph.evaluationFunctionName}(INSG");
 
                         if (graphCode.properties.Any())
-                            callSG.builder.Append("," + graphCode.properties.Select(t => t.GetHLSLVariableName(true)).Aggregate((s, t) => s + ", " + t));
+                            callSG.builder.Append("," + graphCode.properties.Select(t => t.GetHLSLVariableName(true, UnityEditor.ShaderGraph.GenerationMode.ForReals)).Aggregate((s, t) => s + ", " + t));
 
                         callSG.builder.AppendLine(");");
 

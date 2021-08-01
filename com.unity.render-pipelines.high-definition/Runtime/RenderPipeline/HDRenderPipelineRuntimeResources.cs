@@ -164,12 +164,16 @@ namespace UnityEngine.Rendering.HighDefinition
             public ComputeShader volumetricCloudsCS;
             [Reload("Editor/Lighting/VolumetricClouds/CloudMapGenerator.compute")]
             public ComputeShader volumetricCloudMapGeneratorCS;
+            [Reload("Runtime/Lighting/VolumetricLighting/VolumetricCloudsCombine.shader")]
+            public Shader volumetricCloudsCombinePS;
 
             // Material
             [Reload("Runtime/Material/PreIntegratedFGD/PreIntegratedFGD_GGXDisneyDiffuse.shader")]
             public Shader preIntegratedFGD_GGXDisneyDiffusePS;
             [Reload("Runtime/Material/PreIntegratedFGD/PreIntegratedFGD_CharlieFabricLambert.shader")]
             public Shader preIntegratedFGD_CharlieFabricLambertPS;
+            [Reload("Runtime/Material/PreIntegratedFGD/PreIntegratedFGD_Marschner.shader")]
+            public Shader preIntegratedFGD_MarschnerPS;
             [Reload("Runtime/Material/AxF/PreIntegratedFGD_Ward.shader")]
             public Shader preIntegratedFGD_WardPS;
             [Reload("Runtime/Material/AxF/PreIntegratedFGD_CookTorrance.shader")]
@@ -307,8 +311,14 @@ namespace UnityEngine.Rendering.HighDefinition
             public Shader SMAAPS;
             [Reload("Runtime/PostProcessing/Shaders/TemporalAntialiasing.shader")]
             public Shader temporalAntialiasingPS;
+            [Reload("Runtime/PostProcessing/Shaders/UpsampleScene.compute")]
+            public ComputeShader upsampleSceneCS;
+            [Reload("Runtime/PostProcessing/Shaders/LensFlareDataDriven.shader")]
+            public Shader lensFlareDataDrivenPS;
+            [Reload("Runtime/PostProcessing/Shaders/DLSSBiasColorMask.shader")]
+            public Shader DLSSBiasColorMaskPS;
 
-            // Physicaly based DoF
+            // Physically based DoF
             [Reload("Runtime/PostProcessing/Shaders/DoFCircleOfConfusion.compute")]
             public ComputeShader dofCircleOfConfusion;
             [Reload("Runtime/PostProcessing/Shaders/DoFGather.compute")]
@@ -320,6 +330,10 @@ namespace UnityEngine.Rendering.HighDefinition
 
             [Reload("Runtime/PostProcessing/Shaders/ContrastAdaptiveSharpen.compute")]
             public ComputeShader contrastAdaptiveSharpenCS;
+            [Reload("Runtime/PostProcessing/Shaders/RobustContrastAdaptiveSharpen.compute")]
+            public ComputeShader robustContrastAdaptiveSharpenCS;
+            [Reload("Runtime/PostProcessing/Shaders/EdgeAdaptiveSpatialUpsampling.compute")]
+            public ComputeShader edgeAdaptiveSpatialUpsamplingCS;
             [Reload("Runtime/VirtualTexturing/Shaders/DownsampleVTFeedback.compute")]
             public ComputeShader VTFeedbackDownsample;
 
@@ -336,10 +350,12 @@ namespace UnityEngine.Rendering.HighDefinition
             public Shader customClearPS;
 
             // Denoising
-            [Reload("Runtime/Lighting/ScreenSpaceLighting/SSGIDenoiser.compute")]
-            public ComputeShader ssGIDenoiserCS;
             [Reload("Runtime/Lighting/ScreenSpaceLighting/BilateralUpsample.compute")]
             public ComputeShader bilateralUpsampleCS;
+            [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Denoising/TemporalFilter.compute")]
+            public ComputeShader temporalFilterCS;
+            [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Denoising/DiffuseDenoiser.compute")]
+            public ComputeShader diffuseDenoiserCS;
 
 #if UNITY_EDITOR
             // Iterator to retrieve all compute shaders in reflection so we don't have to keep a list of
@@ -398,6 +414,10 @@ namespace UnityEngine.Rendering.HighDefinition
             [Reload("Runtime/RenderPipelineResources/Texture/CoherentNoise/ScramblingTile256SPP.png")]
             public Texture2D scramblingTile256SPP;
 
+            // Pre-integration LUTs
+            [Reload("Runtime/RenderPipelineResources/Texture/PreintegratedAzimuthalScattering.exr")]
+            public Texture2D preintegratedAzimuthalScattering;
+
             // Clouds textures
             [Reload("Runtime/RenderPipelineResources/Texture/VolumetricClouds/CloudLutRainAO.png")]
             public Texture2D cloudLutRainAO;
@@ -405,6 +425,8 @@ namespace UnityEngine.Rendering.HighDefinition
             public Texture3D worleyNoise128RGBA;
             [Reload("Runtime/RenderPipelineResources/Texture/VolumetricClouds/WorleyNoise32RGB.png")]
             public Texture3D worleyNoise32RGB;
+            [Reload("Runtime/RenderPipelineResources/Texture/VolumetricClouds/PerlinNoise32RGB.png")]
+            public Texture3D perlinNoise32RGB;
 
             // Post-processing
             [Reload(new[]
