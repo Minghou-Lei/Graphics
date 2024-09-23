@@ -4,6 +4,41 @@ All notable changes to this project template will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [13.2.4] - 2022-10-17
+- Updated materials to avoid popup
+- Disabled Auto Generate Lighting in the URP template scene
+
+## [13.2.3] - 2022-05-10
+
+### Fixed
+- Removed duplicate text in Readme
+
+## [13.2.2] - 2022-03-16
+
+### Added
+- Added PS5 to QualitySettings.asset.
+- Added GameCore platforms to QualitySettings.asset.
+
+## [13.2.1] - 2022-02-09
+
+### Added
+- Added a Visual Scripting package
+
+## [13.2.0] - 2021-10-18
+
+Version Updated
+The version number for this package has increased due to a version update of a related graphics package.
+
+## [13.1.0] - 2021-09-28
+
+### Changed
+- Update manifest to include required packages
+
+## [13.0.0] - 2021-09-01
+
+### Changed
+- Update SRP package to 13.0.0
+
 ## [12.1.0] - 2021-07-28
 
 Version Updated

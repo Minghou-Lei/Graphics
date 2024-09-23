@@ -4,10 +4,55 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [3.1.2] - 2021-02-06
+## [Unreleased]
+
+### Added
+- 
+
+### Fixed
+- 
+
+## [3.4.0] - 2023-12-11
+
+### Added
+- Added WebGPU support
+
+### Fixed
+- Fixed obsolete FormatUsage error
+- Fixed non-scalar logical operation error
+- Fixed MSVO to support platforms with limited storage texture support
+- Fixed compute based effects not supported on WebGL and Android OpenGL (IN-2999)
+- Fixed grid gizmo is visible through geometry when Post Process Layer is enabled (IN-10318)
+- Fixed transparent objects rendering incorrectly when TAA is disabled (IN-31494)
+
+## [3.3.0] - 2023-05-11
+
+### Fixed
+- Fixed some post effects not scaling correctly when dynamic resolution is enabled on a camera's target texture (case 1166603)
+- Fixed obsolete API call GetScriptingDefineSymbolsForGroup
+- Remove support for OpenGL ES 2.0 in Unity 2023.1 or newer
+
+## [3.2.2] - 2022-04-05
+
+### Fixed
+- Fixed FXAA artefact when trying to preserve alpha channel output.
+- Fixed MSVO aliasing artifact by using a z-Bias parameter. (case 1375337)
+
+## [3.2.1] - 2022-01-12
+
+### Fixed
+- Fixed missing XR warnings for XR non-friendly effects when using XR plugins (case 1328062)
+- Fixed rendering artifacts when depth buffer is used after screen space reflections pass on iOS and M1 (case 1341052)
+- Fixed compilation error when built-in VR module is disabled (case 1389160)
+- Fixed bug where alpha could not be used with HDR on mobile (case 1387848). HDR texture format is now set from Graphics Tier Settings when using Unity 2019.3 or newer.
+- Fixed incorrect Screen-space Reflections rendering on OpenGL platforms (case 1368370)
+
+## [3.2.0] - 2021-11-15
 
 ### Fixed
 - Catch thrown errors in `PostProcessEffectRenderer`, preventing resources allocation leaks and crash (case 1221972)
+- Fixed error thrown when changing post process layer right after creation or before destruction.
+- Fix FXAA when render-target has no alpha channel (case 1344618) (case 1351502)
 
 ## [3.1.1] - 2021-03-08
 

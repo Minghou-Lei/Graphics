@@ -257,7 +257,7 @@ namespace UnityEngine.Rendering.PostProcessing
 #if UNITY_2019_1_OR_NEWER
         bool DynamicResolutionAllowsFinalBlitToCameraTarget()
         {
-            return (!m_Camera.allowDynamicResolution || (ScalableBufferManager.heightScaleFactor == 1.0 && ScalableBufferManager.widthScaleFactor == 1.0));
+            return (!RuntimeUtilities.IsDynamicResolutionEnabled(m_Camera) || (ScalableBufferManager.heightScaleFactor == 1.0 && ScalableBufferManager.widthScaleFactor == 1.0));
         }
 
 #endif
@@ -265,7 +265,9 @@ namespace UnityEngine.Rendering.PostProcessing
 #if UNITY_2019_1_OR_NEWER
         // We always use a CommandBuffer to blit to the final render target
         // OnRenderImage is used only to avoid the automatic blit from the RenderTexture of Camera.forceIntoRenderTexture to the actual target
+#if !UNITY_EDITOR
         [ImageEffectUsesCommandBuffer]
+#endif
         void OnRenderImage(RenderTexture src, RenderTexture dst)
         {
             if (finalBlitToCameraTarget && !m_CurrentContext.stereoActive && DynamicResolutionAllowsFinalBlitToCameraTarget())
@@ -447,14 +449,39 @@ namespace UnityEngine.Rendering.PostProcessing
 #if UNITY_2018_2_OR_NEWER
                 if (!m_Camera.usePhysicalProperties)
 #endif
-                m_Camera.ResetProjectionMatrix();
+                {
+                    m_Camera.ResetProjectionMatrix();
+                    m_Camera.nonJitteredProjectionMatrix = m_Camera.projectionMatrix;
+#if (ENABLE_VR_MODULE && ENABLE_VR)
+                    if (m_Camera.stereoEnabled)
+                    {
+                        m_Camera.ResetStereoProjectionMatrices();
+                        if (m_Camera.stereoActiveEye == Camera.MonoOrStereoscopicEye.Right)
+                        {
+                            m_Camera.CopyStereoDeviceProjectionMatrixToNonJittered(Camera.StereoscopicEye.Right);
+                            m_Camera.projectionMatrix = m_Camera.GetStereoNonJitteredProjectionMatrix(Camera.StereoscopicEye.Right);
+                            m_Camera.nonJitteredProjectionMatrix = m_Camera.projectionMatrix;
+                            m_Camera.SetStereoProjectionMatrix(Camera.StereoscopicEye.Right, m_Camera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right));
+                        }
+                        else if (m_Camera.stereoActiveEye == Camera.MonoOrStereoscopicEye.Left || m_Camera.stereoActiveEye == Camera.MonoOrStereoscopicEye.Mono)
+                        {
+                            m_Camera.CopyStereoDeviceProjectionMatrixToNonJittered(Camera.StereoscopicEye.Left); // device to unjittered
+                            m_Camera.projectionMatrix = m_Camera.GetStereoNonJitteredProjectionMatrix(Camera.StereoscopicEye.Left);
+                            m_Camera.nonJitteredProjectionMatrix = m_Camera.projectionMatrix;
+                            m_Camera.SetStereoProjectionMatrix(Camera.StereoscopicEye.Left, m_Camera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left));
+                        }
+                    }
+#endif
+                }
             }
-            m_Camera.nonJitteredProjectionMatrix = m_Camera.projectionMatrix;
+            else
+            {
+                m_Camera.nonJitteredProjectionMatrix = m_Camera.projectionMatrix;
+            }
 
 #if (ENABLE_VR_MODULE && ENABLE_VR)
             if (m_Camera.stereoEnabled)
             {
-                m_Camera.ResetStereoProjectionMatrices();
                 Shader.SetGlobalFloat(ShaderIDs.RenderViewportScaleFactor, XRSettings.renderViewportScale);
             }
             else
@@ -519,7 +546,7 @@ namespace UnityEngine.Rendering.PostProcessing
         void BuildCommandBuffers()
         {
             var context = m_CurrentContext;
-            var sourceFormat = m_Camera.allowHDR ? RuntimeUtilities.defaultHDRRenderTextureFormat : RenderTextureFormat.Default;
+            var sourceFormat = m_Camera.targetTexture ? m_Camera.targetTexture.format : (m_Camera.allowHDR ? RuntimeUtilities.defaultHDRRenderTextureFormat : RenderTextureFormat.Default);
 
             if (!RuntimeUtilities.isFloatingPointFormat(sourceFormat))
                 m_NaNKilled = true;
@@ -689,12 +716,21 @@ namespace UnityEngine.Rendering.PostProcessing
                     m_Camera.usePhysicalProperties = true;
                 else
 #endif
-                m_Camera.ResetProjectionMatrix();
-
-                if (m_CurrentContext.stereoActive)
                 {
-                    if (RuntimeUtilities.isSinglePassStereoEnabled || m_Camera.stereoActiveEye == Camera.MonoOrStereoscopicEye.Right)
-                        m_Camera.ResetStereoProjectionMatrices();
+                    // The camera must be reset on precull and post render to avoid issues with alpha when toggling TAA.
+                    m_Camera.ResetProjectionMatrix();
+#if (ENABLE_VR_MODULE && ENABLE_VR)
+                    if (m_CurrentContext.stereoActive)
+                    {
+                        if (RuntimeUtilities.isSinglePassStereoEnabled || m_Camera.stereoActiveEye == Camera.MonoOrStereoscopicEye.Right)
+                        {
+                            m_Camera.ResetStereoProjectionMatrices();
+                            // copy the left eye onto the projection matrix so that we're using the correct projection matrix after calling m_Camera.ResetProjectionMatrix(); above.
+                            if (XRSettings.stereoRenderingMode == XRSettings.StereoRenderingMode.MultiPass)
+                                m_Camera.projectionMatrix = m_Camera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left);
+                        }
+                    }
+#endif
                 }
             }
         }
@@ -1200,7 +1236,7 @@ namespace UnityEngine.Rendering.PostProcessing
                 context.destination = tempTarget;
 
                 // Handle FXAA's keep alpha mode
-                if (antialiasingMode == Antialiasing.FastApproximateAntialiasing && !fastApproximateAntialiasing.keepAlpha && HasAlpha(context.sourceFormat))
+                if (antialiasingMode == Antialiasing.FastApproximateAntialiasing && !fastApproximateAntialiasing.keepAlpha && RuntimeUtilities.hasAlpha(context.sourceFormat))
                     uberSheet.properties.SetFloat(ShaderIDs.LumaInAlpha, 1f);
             }
 
@@ -1218,7 +1254,13 @@ namespace UnityEngine.Rendering.PostProcessing
                 m_LogHistogram.Generate(context);
 
             // Uber effects
+            // 1336238: override xrActiveEye in multipass with the currently rendered eye to fix flickering issue.
+            int xrActiveEyeBackup = context.xrActiveEye;
+            if (context.stereoRenderingMode == PostProcessRenderContext.StereoRenderingMode.MultiPass)
+                context.xrActiveEye = eye;
             RenderEffect<AutoExposure>(context);
+            context.xrActiveEye = xrActiveEyeBackup; // restore the eye
+
             uberSheet.properties.SetTexture(ShaderIDs.AutoExposureTex, context.autoExposureTexture);
 
             RenderEffect<LensDistortion>(context);
@@ -1312,7 +1354,7 @@ namespace UnityEngine.Rendering.PostProcessing
                         : "FXAA"
                     );
 
-                    if (HasAlpha(context.sourceFormat))
+                    if (RuntimeUtilities.hasAlpha(context.sourceFormat))
                     {
                         if (fastApproximateAntialiasing.keepAlpha)
                             uberSheet.EnableKeyword("FXAA_KEEP_ALPHA");
@@ -1392,22 +1434,6 @@ namespace UnityEngine.Rendering.PostProcessing
             bool autoExpo = GetBundle<AutoExposure>().settings.IsEnabledAndSupported(context);
             bool lightMeter = debugLayer.lightMeter.IsRequestedAndSupported(context);
             return autoExpo || lightMeter;
-        }
-
-        static bool HasAlpha(RenderTextureFormat format)
-        {
-            return
-                format == RenderTextureFormat.ARGB32
-                || format == RenderTextureFormat.ARGBHalf
-                || format == RenderTextureFormat.ARGB4444
-                || format == RenderTextureFormat.ARGB1555
-                || format == RenderTextureFormat.ARGB2101010
-                || format == RenderTextureFormat.ARGB64
-                || format == RenderTextureFormat.ARGBFloat
-                || format == RenderTextureFormat.ARGBInt
-                || format == RenderTextureFormat.BGRA32
-                || format == RenderTextureFormat.RGBAUShort
-                || format == RenderTextureFormat.BGRA10101010_XR;
         }
     }
 }

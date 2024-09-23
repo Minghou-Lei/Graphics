@@ -1,6 +1,0 @@
-{
-    "name": "Unity.Testing.VisualEffectGraph",
-    "references": ["Unity.VisualEffectGraph.Runtime"],
-    "includePlatforms": [],
-    "excludePlatforms": []
-}

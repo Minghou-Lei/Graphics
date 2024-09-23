@@ -579,21 +579,29 @@ namespace UnityEditor.Rendering.PostProcessing
                     {
                         switch (curveEditingId)
                         {
-                            case 0: m_RawMasterCurve.animationCurveValue = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+                            case 0:
+                                m_RawMasterCurve.animationCurveValue = AnimationCurve.Linear(0f, 0f, 1f, 1f);
                                 break;
-                            case 1: m_RawRedCurve.animationCurveValue = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+                            case 1:
+                                m_RawRedCurve.animationCurveValue = AnimationCurve.Linear(0f, 0f, 1f, 1f);
                                 break;
-                            case 2: m_RawGreenCurve.animationCurveValue = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+                            case 2:
+                                m_RawGreenCurve.animationCurveValue = AnimationCurve.Linear(0f, 0f, 1f, 1f);
                                 break;
-                            case 3: m_RawBlueCurve.animationCurveValue = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+                            case 3:
+                                m_RawBlueCurve.animationCurveValue = AnimationCurve.Linear(0f, 0f, 1f, 1f);
                                 break;
-                            case 4: m_RawHueVsHueCurve.animationCurveValue = new AnimationCurve();
+                            case 4:
+                                m_RawHueVsHueCurve.animationCurveValue = new AnimationCurve();
                                 break;
-                            case 5: m_RawHueVsSatCurve.animationCurveValue = new AnimationCurve();
+                            case 5:
+                                m_RawHueVsSatCurve.animationCurveValue = new AnimationCurve();
                                 break;
-                            case 6: m_RawSatVsSatCurve.animationCurveValue = new AnimationCurve();
+                            case 6:
+                                m_RawSatVsSatCurve.animationCurveValue = new AnimationCurve();
                                 break;
-                            case 7: m_RawLumVsSatCurve.animationCurveValue = new AnimationCurve();
+                            case 7:
+                                m_RawLumVsSatCurve.animationCurveValue = new AnimationCurve();
                                 break;
                         }
                     }
@@ -631,7 +639,7 @@ namespace UnityEditor.Rendering.PostProcessing
 
                     for (int i = 1; i < hLines; i++)
                     {
-                        var offset = i * Vector2.right * gridOffset;
+                        var offset = gridOffset * i * Vector2.right;
                         offset.x += gridPadding;
                         Handles.DrawLine(innerRect.position + offset, new Vector2(innerRect.x, innerRect.yMax - 1) + offset);
                     }
@@ -642,7 +650,7 @@ namespace UnityEditor.Rendering.PostProcessing
 
                     for (int i = 1; i < vLines; i++)
                     {
-                        var offset = i * Vector2.up * gridOffset;
+                        var offset = gridOffset * i * Vector2.up;
                         offset.y += gridPadding;
                         Handles.DrawLine(innerRect.position + offset, new Vector2(innerRect.xMax - 1, innerRect.y) + offset);
                     }
@@ -694,11 +702,11 @@ namespace UnityEditor.Rendering.PostProcessing
 
             float scale = EditorGUIUtility.pixelsPerPoint;
 
-        #if UNITY_2018_1_OR_NEWER
+#if UNITY_2018_1_OR_NEWER
             const RenderTextureReadWrite kReadWrite = RenderTextureReadWrite.sRGB;
-        #else
+#else
             const RenderTextureReadWrite kReadWrite = RenderTextureReadWrite.Linear;
-        #endif
+#endif
 
             var oldRt = RenderTexture.active;
             var rt = RenderTexture.GetTemporary(Mathf.CeilToInt(rect.width * scale), Mathf.CeilToInt(rect.height * scale), 0, RenderTextureFormat.ARGB32, kReadWrite);

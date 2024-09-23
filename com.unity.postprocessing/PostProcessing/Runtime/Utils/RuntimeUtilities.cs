@@ -416,11 +416,11 @@ namespace UnityEngine.Rendering.PostProcessing
         /// </remarks>
         public static void SetRenderTargetWithLoadStoreAction(this CommandBuffer cmd, RenderTargetIdentifier rt, RenderBufferLoadAction loadAction, RenderBufferStoreAction storeAction)
         {
-            #if UNITY_2018_2_OR_NEWER
+#if UNITY_2018_2_OR_NEWER
             cmd.SetRenderTarget(rt, loadAction, storeAction);
-            #else
+#else
             cmd.SetRenderTarget(rt);
-            #endif
+#endif
         }
 
         /// <summary>
@@ -439,11 +439,11 @@ namespace UnityEngine.Rendering.PostProcessing
             RenderBufferLoadAction loadAction, RenderBufferStoreAction storeAction,
             RenderBufferLoadAction depthLoadAction, RenderBufferStoreAction depthStoreAction)
         {
-            #if UNITY_2018_2_OR_NEWER
+#if UNITY_2018_2_OR_NEWER
             cmd.SetRenderTarget(rt, loadAction, storeAction, depthLoadAction, depthStoreAction);
-            #else
+#else
             cmd.SetRenderTarget(rt);
-            #endif
+#endif
         }
 
         /// <summary>
@@ -460,11 +460,11 @@ namespace UnityEngine.Rendering.PostProcessing
             RenderTargetIdentifier color, RenderBufferLoadAction colorLoadAction, RenderBufferStoreAction colorStoreAction,
             RenderTargetIdentifier depth, RenderBufferLoadAction depthLoadAction, RenderBufferStoreAction depthStoreAction)
         {
-            #if UNITY_2018_2_OR_NEWER
+#if UNITY_2018_2_OR_NEWER
             cmd.SetRenderTarget(color, colorLoadAction, colorStoreAction, depth, depthLoadAction, depthStoreAction);
-            #else
+#else
             cmd.SetRenderTarget(color, depth);
-            #endif
+#endif
         }
 
         /// <summary>
@@ -505,13 +505,13 @@ namespace UnityEngine.Rendering.PostProcessing
         public static void BlitFullscreenTriangle(this CommandBuffer cmd, RenderTargetIdentifier source, RenderTargetIdentifier destination, PropertySheet propertySheet, int pass, RenderBufferLoadAction loadAction, Rect? viewport = null, bool preserveDepth = false)
         {
             cmd.SetGlobalTexture(ShaderIDs.MainTex, source);
-            #if UNITY_2018_2_OR_NEWER
+#if UNITY_2018_2_OR_NEWER
             bool clear = (loadAction == LoadAction.Clear);
             if (clear)
                 loadAction = LoadAction.DontCare;
-            #else
+#else
             bool clear = false;
-            #endif
+#endif
             if (viewport != null)
                 loadAction = LoadAction.Load;
 
@@ -539,9 +539,9 @@ namespace UnityEngine.Rendering.PostProcessing
         /// <param name="preserveDepth">Should the depth buffer be preserved?</param>
         public static void BlitFullscreenTriangle(this CommandBuffer cmd, RenderTargetIdentifier source, RenderTargetIdentifier destination, PropertySheet propertySheet, int pass, bool clear = false, Rect? viewport = null, bool preserveDepth = false)
         {
-            #if UNITY_2018_2_OR_NEWER
+#if UNITY_2018_2_OR_NEWER
             cmd.BlitFullscreenTriangle(source, destination, propertySheet, pass, clear ? LoadAction.Clear : LoadAction.DontCare, viewport, preserveDepth);
-            #else
+#else
             cmd.SetGlobalTexture(ShaderIDs.MainTex, source);
             var loadAction = viewport == null ? LoadAction.DontCare : LoadAction.Load;
             cmd.SetRenderTargetWithLoadStoreAction(destination, loadAction, StoreAction.Store, preserveDepth ? LoadAction.Load : loadAction, StoreAction.Store);
@@ -553,7 +553,7 @@ namespace UnityEngine.Rendering.PostProcessing
                 cmd.ClearRenderTarget(true, true, Color.clear);
 
             cmd.DrawMesh(fullscreenTriangle, Matrix4x4.identity, propertySheet.material, 0, pass, propertySheet.properties);
-            #endif
+#endif
         }
 
         /// <summary>
@@ -704,10 +704,10 @@ namespace UnityEngine.Rendering.PostProcessing
         /// <param name="destination">The destination render target</param>
         public static void BuiltinBlit(this CommandBuffer cmd, Rendering.RenderTargetIdentifier source, RenderTargetIdentifier destination)
         {
-            #if UNITY_2018_2_OR_NEWER
+#if UNITY_2018_2_OR_NEWER
             cmd.SetRenderTarget(destination, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
             destination = BuiltinRenderTextureType.CurrentActive;
-            #endif
+#endif
             cmd.Blit(source, destination);
         }
 
@@ -721,10 +721,10 @@ namespace UnityEngine.Rendering.PostProcessing
         /// <param name="pass">The pass from the material to use</param>
         public static void BuiltinBlit(this CommandBuffer cmd, Rendering.RenderTargetIdentifier source, RenderTargetIdentifier destination, Material mat, int pass = 0)
         {
-            #if UNITY_2018_2_OR_NEWER
+#if UNITY_2018_2_OR_NEWER
             cmd.SetRenderTarget(destination, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
             destination = BuiltinRenderTextureType.CurrentActive;
-            #endif
+#endif
             cmd.Blit(source, destination, mat, pass);
         }
 
@@ -859,22 +859,51 @@ namespace UnityEngine.Rendering.PostProcessing
         }
 
         /// <summary>
+        /// Returns <c>true</c> if the target platform is WebGL,
+        /// <c>false</c> otherwise.
+        /// </summary>
+        public static bool isWebNonWebGPU
+        {
+            get
+            {
+#if UNITY_EDITOR
+    #if UNITY_WEBGL
+        #if UNITY_2023_2_OR_NEWER
+                return PlayerSettings.GetGraphicsAPIs(BuildTarget.WebGL).First() != GraphicsDeviceType.WebGPU;
+        #else
+                return true;
+        #endif
+    #else
+                return false;
+    #endif
+#else
+                return Application.platform == RuntimePlatform.WebGLPlayer
+    #if UNITY_2023_2_OR_NEWER
+                    && SystemInfo.graphicsDeviceType != GraphicsDeviceType.WebGPU
+    #endif
+                    ;
+#endif
+
+            }
+        }
+
+        /// <summary>
         /// Gets the default HDR render texture format for the current target platform.
         /// </summary>
         public static RenderTextureFormat defaultHDRRenderTextureFormat
         {
             get
             {
-#if UNITY_ANDROID || UNITY_IPHONE || UNITY_TVOS || UNITY_SWITCH || UNITY_EDITOR
+#if !UNITY_2019_3_OR_NEWER && (UNITY_ANDROID || UNITY_IPHONE || UNITY_TVOS || UNITY_EDITOR)
                 RenderTextureFormat format = RenderTextureFormat.RGB111110Float;
 #if UNITY_EDITOR
                 var target = EditorUserBuildSettings.activeBuildTarget;
-                if (target != BuildTarget.Android && target != BuildTarget.iOS && target != BuildTarget.tvOS && target != BuildTarget.Switch)
+                if (target != BuildTarget.Android && target != BuildTarget.iOS && target != BuildTarget.tvOS)
                     return RenderTextureFormat.DefaultHDR;
 #endif // UNITY_EDITOR
                 if (format.IsSupported())
                     return format;
-#endif // UNITY_ANDROID || UNITY_IPHONE || UNITY_TVOS || UNITY_SWITCH || UNITY_EDITOR
+#endif // #if !UNITY_2019_3_OR_NEWER && (UNITY_ANDROID || UNITY_IPHONE || UNITY_TVOS || UNITY_EDITOR)
                 return RenderTextureFormat.DefaultHDR;
             }
         }
@@ -890,6 +919,17 @@ namespace UnityEngine.Rendering.PostProcessing
                 format == RenderTextureFormat.RGFloat || format == RenderTextureFormat.RGHalf ||
                 format == RenderTextureFormat.RFloat || format == RenderTextureFormat.RHalf ||
                 format == RenderTextureFormat.RGB111110Float;
+        }
+
+        /// <summary>
+        /// Checks if a given render texture format has an alpha channel.
+        /// </summary>
+        /// <param name="format">The format to test</param>
+        /// <returns><c>true</c> if the format has an alpha channel, <c>false</c> otherwise</returns>
+        internal static bool hasAlpha(RenderTextureFormat format)
+        {
+            UnityEngine.Experimental.Rendering.GraphicsFormat gformat = UnityEngine.Experimental.Rendering.GraphicsFormatUtility.GetGraphicsFormat(format, RenderTextureReadWrite.Default);
+            return UnityEngine.Experimental.Rendering.GraphicsFormatUtility.HasAlphaChannel(gformat);
         }
 
         /// <summary>
@@ -998,7 +1038,17 @@ namespace UnityEngine.Rendering.PostProcessing
                 && layer.antialiasingMode == PostProcessLayer.Antialiasing.TemporalAntialiasing
                 && layer.temporalAntialiasing.IsSupported();
         }
-
+#if UNITY_2017_3_OR_NEWER
+        /// <summary>
+        /// Checks if dynamic resolution is enabled on a given camera.
+        /// </summary>
+        /// <param name="camera">The camera to check</param>
+        /// <returns><c>true</c> if dynamic resolution is enabled, <c>false</c> otherwise</returns>
+        public static bool IsDynamicResolutionEnabled(Camera camera)
+        {
+            return camera.allowDynamicResolution || (camera.targetTexture != null && camera.targetTexture.useDynamicScale);
+        }
+#endif
         /// <summary>
         /// Gets all scene objects in the hierarchy, including inactive objects. This method is slow
         /// on large scenes and should be used with extreme caution.
@@ -1014,9 +1064,8 @@ namespace UnityEngine.Rendering.PostProcessing
             foreach (var root in roots)
             {
                 queue.Enqueue(root.transform);
-                var comp = root.GetComponent<T>();
-
-                if (comp != null)
+                
+                if (root.TryGetComponent<T>(out var comp))
                     yield return comp;
             }
 
@@ -1025,9 +1074,8 @@ namespace UnityEngine.Rendering.PostProcessing
                 foreach (Transform child in queue.Dequeue())
                 {
                     queue.Enqueue(child);
-                    var comp = child.GetComponent<T>();
-
-                    if (comp != null)
+                    
+                    if (child.TryGetComponent<T>(out var comp))
                         yield return comp;
                 }
             }
@@ -1162,7 +1210,7 @@ namespace UnityEngine.Rendering.PostProcessing
                         {
                             innerTypes = t.GetTypes();
                         }
-                        catch {}
+                        catch { }
                         return innerTypes;
                     });
             }

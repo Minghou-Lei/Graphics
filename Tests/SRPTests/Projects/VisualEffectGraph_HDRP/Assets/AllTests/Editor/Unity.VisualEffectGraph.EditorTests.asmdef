@@ -1,0 +1,29 @@
+{
+    "name": "Unity.VisualEffectGraph.EditorTests",
+    "references": [
+        "Unity.Testing.VisualEffectGraph.Editor",
+        "Unity.Testing.VisualEffectGraph.EditorTests",
+        "Unity.VisualEffectGraph.Editor",
+        "Unity.VisualEffectGraph.Runtime",
+        "Unity.ShaderGraph.Editor",
+        "UnityEditor.TestTools.Graphics",
+        "UnityEngine.TestTools.Graphics",
+        "Unity.RenderPipelines.HighDefinition.Runtime",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Unity.Timeline",
+        "Unity.Timeline.Editor",
+        "Unity.Nuget.Moq.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [
+        "Moq.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": []
+}
